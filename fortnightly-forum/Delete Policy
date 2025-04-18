@@ -1,0 +1,10 @@
+-- Policy 3: Allow authenticated users to delete questions
+-- WARNING: This allows ANY authenticated user to delete ANY question.
+-- Adjust the USING clause based on your specific authorization needs.
+-- For example, to only allow deletion by an admin role:
+-- USING (auth.role() = 'admin')
+-- Or to allow deletion only by the user who created it (if you store user_id):
+-- USING (auth.uid() = user_id) -- Assuming you add a user_id column
+CREATE POLICY "Allow authenticated deletes" ON public.questions
+  FOR DELETE
+  USING (auth.role() = 'authenticated'); -- Or adjust as needed

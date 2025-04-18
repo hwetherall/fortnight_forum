@@ -1,0 +1,44 @@
+-- 1. Create the main 'questions' table
+CREATE TABLE public.questions (
+  id uuid PRIMARY KEY DEFAULT gen_random_uuid(), -- Unique identifier for each question
+  created_at timestamp with time zone DEFAULT timezone('utc'::text, now()) NOT NULL, -- When the question was submitted (UTC timezone recommended)
+  question_text text NOT NULL CHECK (char_length(question_text) > 0), -- The question itself, cannot be empty
+  context text NULL, -- Optional additional context for the question
+  tag text NOT NULL CHECK (tag IN ('Operations', 'Compliance', 'Technology', 'General', 'Fellows Program', 'Company Success')), -- The category tag, restricted to your list
+  fortnight_id date NOT NULL, -- Start date of the fortnight the question belongs to
+  answer text NULL, -- The answer (will be populated in Stage 2), allowed to be empty initially
+  is_answered boolean DEFAULT false NOT NULL, -- Flag to indicate if answered (for Stage 2/3)
+  votes int DEFAULT 0 NOT NULL -- Number of votes this question has received
+);
+
+-- 2. Add comments to explain the columns (optional but good practice)
+COMMENT ON TABLE public.questions IS 'Stores questions submitted for the fortnightly All Hands meeting.';
+COMMENT ON COLUMN public.questions.id IS 'Unique identifier (UUID) for the question.';
+COMMENT ON COLUMN public.questions.created_at IS 'Timestamp when the question was created.';
+COMMENT ON COLUMN public.questions.question_text IS 'The content of the question asked.';
+COMMENT ON COLUMN public.questions.context IS 'Optional additional context for the question.';
+COMMENT ON COLUMN public.questions.tag IS 'Category tag for the question (e.g., Operations, Tech).';
+COMMENT ON COLUMN public.questions.fortnight_id IS 'The start date (Monday) of the fortnight this question belongs to.';
+COMMENT ON COLUMN public.questions.answer IS 'The answer provided to the question (populated later).';
+COMMENT ON COLUMN public.questions.is_answered IS 'Flag indicating whether the question has been answered.';
+COMMENT ON COLUMN public.questions.votes IS 'Number of votes this question has received.';
+
+-- 3. Enable Row Level Security (RLS) on the table
+-- IMPORTANT: This secures your table. By default, nothing is allowed.
+ALTER TABLE public.questions ENABLE ROW LEVEL SECURITY;
+
+-- 4. Create Policies for RLS:
+-- Policy 1: Allow anyone (anonymous users included) to INSERT new questions.
+CREATE POLICY "Allow anonymous inserts" ON public.questions
+  FOR INSERT WITH CHECK (true); -- 'true' means any insert matching table constraints is allowed
+
+-- Policy 2: Allow anyone (anonymous users included) to SELECT (read) questions.
+-- We will filter by fortnight_id in our application code, not in the RLS for now.
+CREATE POLICY "Allow anonymous reads" ON public.questions
+  FOR SELECT USING (true); -- 'true' means any row can potentially be read
+
+-- Note: For Stage 1, these simple policies are likely fine.
+-- For Stage 2/3, you might want more specific policies, e.g.,
+-- only authenticated admins can UPDATE the 'answer' column.
+-- Or maybe SELECT is restricted to only answered questions for the repository feature.
+-- But let's keep it simple for now.
